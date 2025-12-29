@@ -3,14 +3,14 @@ import requests
 from bs4 import BeautifulSoup
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
-import random
 import json
 import os
+import random
 
 app = Flask(__name__)
 
-# Community page URL (replace with actual)
-URL = "https://www.adopt-me-values.com/pets"
+# URL of AdoptMeTradingValues pet list
+URL = "https://adoptmetradingvalues.com/pet-value-list.php"
 
 # History file
 HISTORY_FILE = "pet_values_history.json"
@@ -26,16 +26,20 @@ def fetch_pet_values():
     try:
         response = requests.get(URL)
         soup = BeautifulSoup(response.text, "html.parser")
-
+        
         pet_values = {}
-        for pet_div in soup.find_all("div", class_="pet"):
-            name = pet_div.find("h2").text
-            value = pet_div.find("p").text.replace(",", "")
-            try:
-                value = int(value)
-            except:
-                value = 0
-            pet_values[name] = value
+
+        # Table rows
+        for row in soup.find_all("tr"):
+            cells = row.find_all("td")
+            if len(cells) >= 2:
+                name = cells[0].text.strip()
+                value_text = cells[1].text.strip().replace(",", "").replace("RP", "")
+                try:
+                    value = int(value_text)
+                except:
+                    continue
+                pet_values[name] = value
 
         timestamp = str(datetime.now())
         history.append({"timestamp": timestamp, "values": pet_values})
